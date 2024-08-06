@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// i am creating a scaffolding cli tool that will allow for fast react app creation
-
 import { Command } from "commander";
 import inquirer from "inquirer";
 import { execa } from "execa";
@@ -12,201 +10,196 @@ const program = new Command();
 
 program.version("1.0.0").description("React app scaffolding tool");
 
+// Function to prompt user for options
+async function promptUser() {
+  return inquirer.prompt([
+    {
+      type: "confirm",
+      name: "installTailwind",
+      message: "Install TailwindCSS?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installReactQuery",
+      message: "Install React Query?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installAxios",
+      message: "Install Axios?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installReactRouter",
+      message: "Install React Router?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installJotai",
+      message: "Install Jotai?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installDevtools",
+      message: "Install Devtools for React and React Query?",
+      default: true,
+    },
+    {
+      type: "confirm",
+      name: "installPrettier",
+      message: "Install Prettier?",
+      default: true,
+    },
+  ]);
+}
+
+// Function to create React app with Vite
+async function createReactApp(projectName) {
+  await execa("npm", ["create", "vite@latest", projectName], {
+    stdio: "inherit",
+  });
+}
+
+// Function to change directory to the project path
+function changeDirectory(projectName) {
+  const projectPath = join(process.cwd(), projectName);
+  process.chdir(projectPath);
+  return projectPath;
+}
+
+// Function to install dependencies
+async function installDependencies(dependencies) {
+  for (const { name, args, successMessage } of dependencies) {
+    console.log(`Installing ${name}...`);
+    await execa("npm", args, { stdio: "inherit" });
+    console.log(successMessage);
+  }
+}
+
+// Function to configure TailwindCSS
+function configureTailwindCSS(projectPath) {
+  console.log("Configuring TailwindCSS...");
+  writeFileSync(
+    join(projectPath, "tailwind.config.js"),
+    `module.exports = {
+    content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
+    theme: { extend: {} },
+    plugins: [],
+  };`
+  );
+
+  writeFileSync(
+    join(projectPath, "src", "index.css"),
+    `@tailwind base;
+   @tailwind components;
+   @tailwind utilities;`
+  );
+
+  console.log("TailwindCSS configured successfully!");
+}
+
+// Function to install and configure Prettier
+async function configurePrettier(projectPath) {
+  console.log("Installing Prettier...");
+  await execa(
+    "npm",
+    [
+      "install",
+      "--save-dev",
+      "prettier",
+      "eslint-config-prettier",
+      "eslint-plugin-prettier",
+    ],
+    { stdio: "inherit" }
+  );
+
+  writeFileSync(
+    join(projectPath, ".prettierrc"),
+    `{
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "useTabs": false
+  }`
+  );
+
+  writeFileSync(join(projectPath, ".prettierignore"), "node_modules/dist/");
+
+  console.log("Prettier configuration complete!");
+  console.log("Formatting project files with Prettier...");
+  await execa(
+    "npx",
+    ["prettier", "--write", "**/*.{js,jsx,ts,tsx,json,css,md}"],
+    { stdio: "inherit" }
+  );
+  console.log("Project files formatted with Prettier!");
+}
+
+// Main action for the "create" command
 program
   .command("create <project-name>")
   .description("Create a new react app")
   .action(async (projectName) => {
     try {
-      const {
-        installTailwind,
-        installReactQuery,
-        installAxios,
-        installReactRouter,
-        installJotai,
-        installReactDevtools,
-        installPrettier,
-      } = await inquirer.prompt([
+      const options = await promptUser();
+      await createReactApp(projectName);
+      const projectPath = changeDirectory(projectName);
+
+      const dependencies = [
         {
-          type: "confirm",
-          name: "installTailwind",
-          message: "Install TailwindCSS?",
-          default: true,
+          name: "TailwindCSS",
+          args: ["install", "tailwindcss", "postcss", "autoprefixer"],
+          successMessage: "TailwindCSS installed successfully!",
         },
         {
-          type: "confirm",
-          name: "installReactQuery",
-          message: "Install React Query?",
-          default: true,
+          name: "React Query",
+          args: ["install", "@tanstack/react-query"],
+          successMessage: "React Query installed successfully!",
         },
         {
-          type: "confirm",
-          name: "installAxios",
-          message: "Install Axios?",
-          default: true,
+          name: "Axios",
+          args: ["install", "axios"],
+          successMessage: "Axios installed successfully!",
         },
         {
-          type: "confirm",
-          name: "installReactRouter",
-          message: "Install React Router?",
-          default: true,
+          name: "React Router",
+          args: ["install", "react-router-dom"],
+          successMessage: "React Router installed successfully!",
         },
         {
-          type: "confirm",
-          name: "installJotai",
-          message: "Install Jotai?",
-          default: true,
+          name: "Jotai",
+          args: ["install", "jotai"],
+          successMessage: "Jotai installed successfully!",
         },
         {
-          type: "confirm",
-          name: "installDevtools",
-          message: "Install Devtools for React and React Query?",
-          default: true,
+          name: "React Devtools and React Query Devtools",
+          args: ["install", "react-devtools", "@tanstack/react-query-devtools"],
+          successMessage:
+            "React Devtools and React Query Devtools installed successfully!",
         },
-        {
-          type: "confirm",
-          name: "installPrettier",
-          message: "Install Prettier?",
-          default: true,
-        },
-      ]);
+      ];
 
-      // create react app with vite
-      await execa("npm", ["create", "vite@latest", projectName], {
-        stdio: "inherit",
-      });
+      const toInstall = dependencies.filter(
+        (dep) => options[`install${dep.name.replace(/[^A-Za-z]/g, "")}`]
+      );
+      await installDependencies(toInstall);
 
-      const projectPath = join(process.cwd(), projectName);
-      process.chdir(projectPath);
-
-      //install tailwind
-      if (installTailwind) {
-        console.log("Installing TailwindCSS...");
-        await execa(
-          "npm",
-          ["install", "tailwindcss", "postcss", "autoprefixer"],
-          { stdio: "inherit" }
-        );
-        await execa("npx", ["tailwindcss", "init", "-p"], { stdio: "inherit" });
-
-        writeFileSync(
-          join(projectPath, "tailwind.config.js"),
-          `module.exports = {
-            content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
-            theme: {
-              extend: {},
-            },
-            plugins: [],
-          };`
-        );
-
-        writeFileSync(
-          join(projectPath, "src", "index.css"),
-          `@tailwind base;
-           @tailwind components;
-           @tailwind utilities;`
-        );
-
-        console.log("TailwindCSS installed successfully!");
+      if (options.installTailwind) {
+        configureTailwindCSS(projectPath);
       }
 
-      // install react query
-      if (installReactQuery) {
-        console.log("Installing react-query...");
-        await execa("npm", ["install", "@tanstack/react-query"], {
-          stdio: "inherit",
-        });
-        console.log("React Query installed successfully!");
+      if (options.installPrettier) {
+        await configurePrettier(projectPath);
       }
-
-      // install axios
-      if (installAxios) {
-        console.log("Installing axios...");
-        await execa("npm", ["install", "axios"], { stdio: "inherit" });
-        console.log("Axios installed successfully!");
-      }
-
-      // install react router
-      if (installReactRouter) {
-        console.log("Installing react-router-dom...");
-        await execa("npm", ["install", "react-router-dom"], {
-          stdio: "inherit",
-        });
-        console.log("React Router installed successfully!");
-      }
-
-      // install jotai
-      if (installJotai) {
-        console.log("Installing jotai...");
-        await execa("npm", ["install", "jotai"], { stdio: "inherit" });
-        console.log("Jotai installed successfully!");
-      }
-
-      // install react query devtools
-      if (installReactDevtools) {
-        console.log("Installing React Devtools and React Query Devtools...");
-        await execa(
-          "npm",
-          ["install", "react-devtools", "@tanstack/react-query-devtools"],
-          { stdio: "inherit" }
-        );
-        console.log(
-          "React Devtools and React Query Devtools installed successfully!"
-        );
-      }
-
-      // Install Prettier
-      if (installPrettier) {
-        console.log("Installing Prettier...");
-        await execa(
-          "npm",
-          [
-            "install",
-            "--save-dev",
-            "prettier",
-            "eslint-config-prettier",
-            "eslint-plugin-prettier",
-          ],
-          { stdio: "inherit" }
-        );
-
-        writeFileSync(
-          join(projectPath, ".prettierrc"),
-          `{
-            "semi": false,
-            "singleQuote": true,
-            "tabWidth": 2,
-            "useTabs": false
-          }`
-        );
-
-        // Create .prettierignore file
-        writeFileSync(
-          join(projectPath, ".prettierignore"),
-          `node_modules/dist/`
-        );
-
-        console.log("Prettier configuration complete!");
-
-        // Format the project files with Prettier
-        console.log("Formatting project files with Prettier...");
-        await execa(
-          "npx",
-          ["prettier", "--write", "**/*.{js,jsx,ts,tsx,json,css,md}"],
-          { stdio: "inherit" }
-        );
-        console.log("Project files formatted with Prettier!");
-      }
-
-      // delete unnecessary files
-      console.log("Deleting unnecessary files...");
-      await execa("rm", ["-rf", "src/logo.svg", "src/App.css"], {
-        stdio: "inherit",
-      });
-      console.log("Unnecessary files deleted!");
 
       console.log("Project created successfully!");
     } catch (error) {
-      console.error(error);
+      console.error("Error:", error);
     }
   });
 
