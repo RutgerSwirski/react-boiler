@@ -1,5 +1,5 @@
 {
-  "name": "my-react-cli",
+  "name": "react-boiler",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "inquirer": "^10.1.8"
   },
   "bin": {
-    "my-react-cli": "./index.js"
+    "react-boiler": "./index.js"
   },
   "type": "module"
 }
