@@ -55,6 +55,27 @@ async function promptUser() {
       message: "Install Prettier?",
       default: true,
     },
+    // ask to install material ui
+    {
+      type: "confirm",
+      name: "installMaterialUI",
+      message: "Install Material UI?",
+      default: true,
+    },
+    // ask to install jest
+    {
+      type: "confirm",
+      name: "installJest",
+      message: "Install Jest?",
+      default: true,
+    },
+    // ask to install cypress
+    {
+      type: "confirm",
+      name: "installCypress",
+      message: "Install Cypress?",
+      default: true,
+    },
   ]);
 }
 
@@ -181,6 +202,22 @@ program
           args: ["install", "react-devtools", "@tanstack/react-query-devtools"],
           successMessage:
             "React Devtools and React Query Devtools installed successfully!",
+        },
+
+        {
+          name: "Material UI",
+          args: ["install", "@mui/base"],
+          successMessage: "Material UI installed successfully!",
+        },
+        {
+          name: "Jest",
+          args: ["install", "jest"],
+          successMessage: "Jest installed successfully!",
+        },
+        {
+          name: "Cypress",
+          args: ["install", "cypress"],
+          successMessage: "Cypress installed successfully!",
         },
       ];
 
